@@ -1,61 +1,59 @@
-from fastapi import FastAPI, Request, File, UploadFile
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-import pandas as pd
-import matplotlib.pyplot as plt
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from models import AssessmentRequest, AssessmentResult
+from scoring import calculate_score
+from database import init_db, save_result, get_history
+import json
 import os
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
-STATIC_DIR = "static"
 
-# staticディレクトリがなければ作る
-os.makedirs(STATIC_DIR, exist_ok=True)
+# Allow CORS for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific origin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+@app.on_event("startup")
+def startup_event():
+    init_db()
 
-@app.post("/upload", response_class=HTMLResponse)
-async def upload_csv(request: Request, file: UploadFile = File(...)):
-    # CSV読み込み
-    df = pd.read_csv(file.file)
+# Mount static directory if it exists (for production)
+if os.path.exists("static"):
+    app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
 
-    # 必要な列があるかチェック
-    required_columns = ["年齢", "要介護度", "通院回数", "ADL"]
-    for col in required_columns:
-        if col not in df.columns:
-            df[col] = 0  # なければ0で補う
+    @app.get("/")
+    async def read_root():
+        return FileResponse("static/index.html")
 
-    # 健康状態スコア計算
-    df["健康状態スコア"] = (
-        (100 - (df["年齢"] - 65) * 0.5) +
-        (100 - df["要介護度"] * 10) +
-        (100 - df["通院回数"] * 5) +
-        df["ADL"]
-    ) / 4
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Serve index.html for any path not matched by API
+        if full_path.startswith("api"):
+            return {"error": "Not Found"}
+        return FileResponse("static/index.html")
+else:
+    @app.get("/")
+    def read_root():
+        return {"message": "Senior Navi Backend is running (Development Mode)"}
 
-    # グラフ作成
-    plt.figure(figsize=(8,5))
-    plt.bar(df.index, df["健康状態スコア"], color="skyblue")
-    plt.xlabel("利用者")
-    plt.ylabel("健康状態スコア")
-    plt.title("健康状態スコア一覧")
-    plt.tight_layout()
-    plot_path = os.path.join(STATIC_DIR, "plot.png")
-    plt.savefig(plot_path)
-    plt.close()
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
-    # HTMLに渡す
-    return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "tables": [df.to_html(classes='table')],
-            "plot_url": f"/static/plot.png"
-        }
-    )
+@app.post("/api/assess", response_model=AssessmentResult)
+def assess(request: AssessmentRequest):
+    result = calculate_score(request)
+    # Save to history
+    save_result(result.score, result.level, json.dumps([a.dict() for a in request.answers]))
+    return result
 
-# staticファイルを配信
-from fastapi.staticfiles import StaticFiles
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+@app.get("/api/history")
+def read_history():
+    return get_history()
+
