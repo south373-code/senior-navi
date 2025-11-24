@@ -5,7 +5,7 @@ const HistoryScreen = ({ onBack }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('http://localhost:8000/api/history')
+        fetch('/api/history')
             .then(res => res.json())
             .then(data => {
                 setHistory(data);
