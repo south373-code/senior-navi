@@ -28,3 +28,6 @@ backend/__pycache__/
 # IDE
 .vscode/
 .idea/
+
+backend/history.db
+backend/__pycache__
