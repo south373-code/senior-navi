@@ -1,4 +1,4 @@
-from .models import AssessmentRequest, AssessmentResult
+from models import AssessmentRequest, AssessmentResult
 
 def calculate_score(request: AssessmentRequest) -> AssessmentResult:
     # Simple scoring: Sum of answer values.

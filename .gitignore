@@ -1,0 +1,30 @@
+# General
+.DS_Store
+Thumbs.db
+*.log
+*.sqlite3
+__pycache__/
+*.py[cod]
+.env
+venv/
+.venv/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+.output/
+
+# Python
+backend/venv/
+backend/.venv/
+backend/__pycache__/
+*.egg-info/
+
+# Docker
+.docker/
+
+# IDE
+.vscode/
+.idea/
