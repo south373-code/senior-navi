@@ -12,10 +12,10 @@ const ResultScreen = ({ result, onRestart }) => {
 
             <div style={{ marginTop: '40px' }}>
                 <h3>相談窓口</h3>
-                <button className="btn-secondary" onClick={() => alert('実際のアプリでは電話発信や地図が開きます')}>
-                    地域包括支援センターに電話
+                <button className="btn-secondary" onClick={() => window.open('https://www.google.com/maps/search/?api=1&query=地域包括支援センター', '_blank')}>
+                    近くの地域包括支援センターを探す
                 </button>
-                <button className="btn-secondary" onClick={() => alert('実際のアプリでは医療機関検索が開きます')}>
+                <button className="btn-secondary" onClick={() => window.open('https://www.google.com/maps/search/?api=1&query=病院', '_blank')}>
                     近くの病院を探す
                 </button>
             </div>
