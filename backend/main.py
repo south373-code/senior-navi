@@ -6,7 +6,8 @@ from database import init_db, save_result, get_history
 import json
 import os
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
+from analysis import get_analysis_summary, create_score_trend_chart, create_level_dist_chart, create_question_stats_chart
 
 app = FastAPI()
 
@@ -56,4 +57,23 @@ def assess(request: AssessmentRequest):
 @app.get("/api/history")
 def read_history():
     return get_history()
+
+@app.get("/api/analysis/summary")
+def analysis_summary():
+    return get_analysis_summary()
+
+@app.get("/api/analysis/chart/{chart_type}")
+def analysis_chart(chart_type: str):
+    buf = None
+    if chart_type == "score_trend":
+        buf = create_score_trend_chart()
+    elif chart_type == "level_dist":
+        buf = create_level_dist_chart()
+    elif chart_type == "question_stats":
+        buf = create_question_stats_chart()
+    
+    if buf:
+        return Response(content=buf.getvalue(), media_type="image/png")
+    else:
+        return {"error": "Could not generate chart (no data?)"}
 
